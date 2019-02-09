@@ -45,24 +45,14 @@ Implementation Notes
  * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
 
-from micropython import const
 import adafruit_bus_device.i2c_device as i2c_device
-from adafruit_register.i2c_struct import Struct, UnaryStruct
-from adafruit_register.i2c_bit import RWBit
+from adafruit_register.i2c_struct import UnaryStruct, ROUnaryStruct
+from adafruit_register.i2c_bits import RWBits, ROBits
+from adafruit_register.i2c_bit import RWBit, ROBit
+import digitalio
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VCNL4040.git"
-
-
-_ALS_THDH_LM = const(0x01)  # ALS high interrupt threshold
-_ALS_THDL_LM = const(0x02)  # ALS low interrupt threshold
-_PS_CONF2 = const(0x03)  # PS output resolution selection, interrupt trigger method
-_PS_CONF3 = const(0x04)  # PS smart persistence, active force mode
-_PS_MS = const(0x04)  # White channel enable/disable, PS mode, PS protection setting, LED current
-_PS_CANC_LM = const(0x05)  # PS cancellation level setting
-_PS_THDH_LM = const(0x06)  # PS low interrupt threshold setting
-_PS_THDL_LM = const(0x07)  # PS high interrupt threshold setting
-_INT_Flag = const(0x0B)  # ALS, PS interrupt flags
 
 
 class VCNL4040:
@@ -71,27 +61,57 @@ class VCNL4040:
     """Docs"""
 
     # PS_Data_LM - PS output data
-    proximity = UnaryStruct(0x08, ">H")
+    proximity = ROUnaryStruct(0x08, "<H")
 
     # PS_CONF1 - PS duty ratio, integration time, persistence, enable/disable
-    proximity_settings = UnaryStruct(0x03, ">H")
+    # PS_CONF2 - PS output resolution selection, interrupt trigger method
+    # PS_CONF3 - PS smart persistence, active force mode
+    # proximity_settings = UnaryStruct(0x03, "<H")
+    proximity_shutdown = RWBit(0x03, 0, register_width=2)
+    proximity_persistence = RWBits(3, 0x03, 1, register_width=2)
+    proximity_smart_persistence = RWBit(0x04, 4, register_width=2)
+    proximity_interrupt = RWBits(2, 0x03, 8, register_width=2)
+    proximity_cancellation_level = UnaryStruct(0x05, "<H")
+
+    # PS_THDL_LM - PS low interrupt threshold setting
+    proximity_low_threshold = UnaryStruct(0x06, "<H")
+    # PS_THDH_LM - PS high interrupt threshold setting
+    proximity_high_threshold = UnaryStruct(0x07, "<H")
+    # INT_FLAG - PS interrupt flag
+    proximity_high_interrupt = ROBit(0x0B, 9, register_width=2)
+    proximity_low_interrupt = ROBit(0x0B, 8, register_width=2)
 
     # ALS_Data_LM - ALS output data
-    light = UnaryStruct(0x09, ">H")
+    light = ROUnaryStruct(0x09, "<H")
 
     # ALS_CONF - ALS integration time, persistence, interrupt, function enable/disable
-    light_settings = UnaryStruct(0x00, ">H")
+    light_settings = UnaryStruct(0x00, "<H")
+    light_shutdown = RWBit(0x00, 0, register_width=2)
+
+    # ALS_THDL_LM - ALS low interrupt threshold setting
+    light_low_threshod = UnaryStruct(0x02, "<H")
+    # ALS_THDH_LM - ALS high interrupt threshold setting
+    light_high_threshold = UnaryStruct(0x01, "<H")
+    # INT_FLAG - ALS interrupt flag
+    light_high_interrupt = ROBit(0x0B, 12, register_width=2)
+    light_low_interrupt = ROBit(0x0B, 13, register_width=2)
 
     # White_Data_LM - White output data
-    white = UnaryStruct(0x0A, ">H")
+    white = ROUnaryStruct(0x0A, "<H")
 
-    white_enable = UnaryStruct(0x04, ">H")
+    # PS_MS - White channel enable/disable, PS mode, PS protection setting, LED current
+    # white_enable = RWBit(0x04, 15, register_width=2)
 
-    def __init__(self, i2c, address=0x60):
+    def __init__(self, i2c, address=0x60, interrupt_pin=None):
         self.i2c_device = i2c_device.I2CDevice(i2c, address)
         if self._device_id != 0x186:
             raise RuntimeError("Failed to find VCNL4040 - check wiring!")
-        self.proximity_settings = 0x0001
-        self.light_settings = 0x0001
-        self.white_enable = 0x1000
 
+        self._interrupt_pin = interrupt_pin
+        if self._interrupt_pin:
+            self._interrupt_pin.switch_to_input(pull=digitalio.Pull.UP)
+
+        self.proximity_shutdown = False
+        self.light_shutdown = False
+        self.proximity_smart_persistence = True
+        # self.white_enable = False
