@@ -111,7 +111,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     This example prints the proximity data. Move your hand towards the sensor to see the values
     change.
 
-    ..code-block:: python
+    .. code-block:: python
 
         import time
         import board
@@ -169,7 +169,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     This example prints the ambient light data. Cover the sensor to see the values change.
 
-    ..code-block:: python
+    .. code-block:: python
 
         import time
         import board
@@ -194,7 +194,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     This example sets the ambient light integration time to 640ms and prints the ambient light
     sensor data.
 
-    ..code-block:: python
+    .. code-block:: python
 
         import time
         import board
@@ -231,7 +231,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     This example prints the white light data. Cover the sensor to see the values change.
 
-    ..code-block:: python
+    .. code-block:: python
 
         import time
         import board
