@@ -49,8 +49,7 @@ from micropython import const
 import adafruit_bus_device.i2c_device as i2cdevice
 from adafruit_register.i2c_struct import UnaryStruct, ROUnaryStruct
 from adafruit_register.i2c_bits import RWBits
-from adafruit_register.i2c_bit import RWBit, ROBit
-import digitalio
+from adafruit_register.i2c_bit import RWBit
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VCNL4040.git"
@@ -100,6 +99,12 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     PS_INT_AWAY = const(0x2)
     PS_INT_CLOSE_AWAY = const(0x3)
 
+    # Offsets into interrupt status register for different types
+    ALS_IF_L = const(0x0D)
+    ALS_IF_H = const(0x0C)
+    PS_IF_CLOSE = const(0x09)
+    PS_IF_AWAY = const(0x08)
+
     # ID_LM - Device ID, address
     _device_id = UnaryStruct(0x0C, "<H")
     """The device ID."""
@@ -148,13 +153,22 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     # PS_THDH_LM - PS high interrupt threshold setting
     proximity_high_threshold = UnaryStruct(0x07, "<H")
     """Proximity sensor interrupt high threshold setting."""
+
+    interrupt_state = ROUnaryStruct(0x0B, "<H")
+
     # INT_FLAG - PS interrupt flag
-    proximity_high_interrupt = ROBit(0x0B, 9, register_width=2)
-    """If interrupt is set to ``PS_INT_CLOSE`` or ``PS_INT_CLOSE_AWAY``, trigger event when
-    proximity rises above high threshold interrupt."""
-    proximity_low_interrupt = ROBit(0x0B, 8, register_width=2)
-    """If interrupt is set to ``PS_INT_AWAY`` or ``PS_INT_CLOSE_AWAY``, trigger event when
-    proximity drops below low threshold."""
+    @property
+    def proximity_high_interrupt(self):
+        """If interrupt is set to ``PS_INT_CLOSE`` or ``PS_INT_CLOSE_AWAY``, trigger event when
+        proximity rises above high threshold interrupt."""
+        return self._get_and_clear_cached_interrupt_state(self.PS_IF_CLOSE)
+
+    @property
+    def proximity_low_interrupt(self):
+        """If interrupt is set to ``PS_INT_AWAY`` or ``PS_INT_CLOSE_AWAY``, trigger event when
+        proximity drops below low threshold."""
+        return self._get_and_clear_cached_interrupt_state(self.PS_IF_AWAY)
+
 
     led_current = RWBits(3, 0x04, 8, register_width=2)
     """LED current selection setting, in mA. Options are: LED_50MA, LED_75MA, LED_100MA, LED_120MA,
@@ -220,10 +234,16 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     light_high_threshold = UnaryStruct(0x01, "<H")
     """Ambient light interrupt high threshold."""
     # INT_FLAG - ALS interrupt flag
-    light_high_interrupt = ROBit(0x0B, 12, register_width=2)
-    """High interrupt event. Triggered when ambient light value exceeds high threshold."""
-    light_low_interrupt = ROBit(0x0B, 13, register_width=2)
-    """Low interrupt event. Triggered when ambient light value drops below low threshold."""
+
+    @property
+    def light_high_interrupt(self):
+        """High interrupt event. Triggered when ambient light value exceeds high threshold."""
+        return self._get_and_clear_cached_interrupt_state(self.ALS_IF_H)
+
+    @property
+    def light_low_interrupt(self):
+        """Low interrupt event. Triggered when ambient light value drops below low threshold."""
+        return self._get_and_clear_cached_interrupt_state(self.ALS_IF_L)
 
     # White_Data_LM - White output data
     white = ROUnaryStruct(0x0A, "<H")
@@ -248,18 +268,40 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     # PS_MS - White channel enable/disable, PS mode, PS protection setting, LED current
     # White_EN - PS_MS_H, 7th bit - White channel enable/disable
-    white_enable = RWBit(0x04, 15, register_width=2)
-    """White data enable. ``True`` when enabled."""
+    white_shutdown = RWBit(0x04, 15, register_width=2)
+    """White light channel shutdown. When ``True``, white light data is disabled."""
 
-    def __init__(self, i2c, address=0x60, interrupt_pin=None):
+
+    def __init__(self, i2c, address=0x60):
         self.i2c_device = i2cdevice.I2CDevice(i2c, address)
         if self._device_id != 0x186:
             raise RuntimeError("Failed to find VCNL4040 - check wiring!")
 
-        self._interrupt_pin = interrupt_pin
-        if self._interrupt_pin:
-            self._interrupt_pin.switch_to_input(pull=digitalio.Pull.UP)
+        self.cached_interrupt_state = {
+            self.ALS_IF_L : False,
+            self.ALS_IF_H : False,
+            self.PS_IF_CLOSE : False,
+            self.PS_IF_AWAY : False
+        }
 
         self.proximity_shutdown = False
         self.light_shutdown = False
-        self.white_enable = True
+        self.white_shutdown = False
+
+    def _update_interrupt_state(self):
+        interrupts = [self.PS_IF_AWAY, self.PS_IF_CLOSE, self.ALS_IF_H, self.ALS_IF_L]
+        new_interrupt_state = self.interrupt_state
+        print("New int state: %s"%bin(new_interrupt_state))
+        for interrupt in interrupts:
+            new_state = (new_interrupt_state & (1 << interrupt) > 0)
+            print("Offset %d    new state: %s"%(interrupt, new_state))
+            print("Offset %d cached state: %s"%(interrupt, self.cached_interrupt_state[interrupt]))
+            if new_state:
+                self.cached_interrupt_state[interrupt] = new_state
+
+    def _get_and_clear_cached_interrupt_state(self, interrupt_offset):
+        self._update_interrupt_state()
+        new_interrupt_state = self.cached_interrupt_state[interrupt_offset]
+        self.cached_interrupt_state[interrupt_offset] = False
+
+        return new_interrupt_state
