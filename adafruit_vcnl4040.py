@@ -291,11 +291,8 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     def _update_interrupt_state(self):
         interrupts = [self.PS_IF_AWAY, self.PS_IF_CLOSE, self.ALS_IF_H, self.ALS_IF_L]
         new_interrupt_state = self.interrupt_state
-        print("New int state: %s"%bin(new_interrupt_state))
         for interrupt in interrupts:
             new_state = (new_interrupt_state & (1 << interrupt) > 0)
-            print("Offset %d    new state: %s"%(interrupt, new_state))
-            print("Offset %d cached state: %s"%(interrupt, self.cached_interrupt_state[interrupt]))
             if new_state:
                 self.cached_interrupt_state[interrupt] = new_state
 
