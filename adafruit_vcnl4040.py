@@ -171,59 +171,85 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
 
     led_current = RWBits(3, 0x04, 8, register_width=2)
-    """LED current selection setting, in mA. Options are: LED_50MA, LED_75MA, LED_100MA, LED_120MA,
+    """LED current selection setting, in mA. Options are LED_50MA, LED_75MA, LED_100MA, LED_120MA,
     LED_140MA, LED_160MA, LED_180MA, LED_200MA."""
+
     led_duty_cycle = RWBits(2, 0x03, 6, register_width=2)
     """Proximity sensor LED duty ratio setting. Ratios are 1/40, 1/80, 1/160, and 1/320. Options
     are: LED_1_40, LED_1_80, LED_1_160, LED_1_320."""
 
-    # ALS_Data_LM - ALS output data
     light = ROUnaryStruct(0x09, "<H")
-    """Ambient light data.
-
-    This example prints the ambient light data. Cover the sensor to see the values change.
-
-    .. code-block:: python
-
-        import time
-        import board
-        import busio
-        import adafruit_vcnl4040
-
-        i2c = busio.I2C(board.SCL, board.SDA)
-        sensor = adafruit_vcnl4040.VCNL4040(i2c)
-
-        while True:
-            print("Ambient light:", sensor.light)
-            time.sleep(0.1)
+    """Raw ambient light data. The raw ambient light data which will change with integration time
+    and gain settings changes. Use ``lux`` to get the correctly scaled value for the current
+    integration time and gain settings
     """
+
+    @property
+    def lux(self):
+        """Ambient light data in lux. Represents the raw sensor data scaled according to the current
+        integration time and gain settings.
+
+        This example prints the ambient light data. Cover the sensor to see the values change.
+
+        .. code-block:: python
+
+            import time
+            import board
+            import busio
+            import adafruit_vcnl4040
+
+            i2c = busio.I2C(board.SCL, board.SDA)
+            sensor = adafruit_vcnl4040.VCNL4040(i2c)
+
+            while True:
+                print("Ambient light: %.2f lux"%sensor.lux)
+                time.sleep(0.1)
+        """
+        return self.light * (0.1 /(1 << self.light_integration_time))
+
 
     # ALS_CONF - ALS integration time, persistence, interrupt, function enable/disable
     light_shutdown = RWBit(0x00, 0, register_width=2)
     """Ambient light sensor shutdown. When ``True``, ambient light data is disabled."""
-    light_integration_time = RWBits(2, 0x00, 6, register_width=2)
-    """Ambient light sensor integration time setting. Longer time has higher sensitivity. Can be:
-    ALS_80MS, ALS_160MS, ALS_320MS or ALS_640MS.
 
-    This example sets the ambient light integration time to 640ms and prints the ambient light
-    sensor data.
+    _light_integration_time = RWBits(2, 0x00, 6, register_width=2)
+    @property
+    def light_integration_time(self):
+        """Ambient light sensor integration time setting. Longer time has higher sensitivity.
+        Can be: ALS_80MS, ALS_160MS, ALS_320MS or ALS_640MS.
 
-    .. code-block:: python
+        This example sets the ambient light integration time to 640ms and prints the ambient light
+        sensor data.
 
-        import time
-        import board
-        import busio
-        import adafruit_vcnl4040
+        .. code-block:: python
 
-        i2c = busio.I2C(board.SCL, board.SDA)
-        sensor = adafruit_vcnl4040.VCNL4040(i2c)
+            import time
+            import board
+            import busio
+            import adafruit_vcnl4040
 
-        sensor.light_integration_time = sensor.ALS_640MS
+            i2c = busio.I2C(board.SCL, board.SDA)
+            sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
-        while True:
-            print("Ambient light:", sensor.light)
-            time.sleep(0.1)
-    """
+            sensor.light_integration_time = sensor.ALS_640MS
+
+            while True:
+                print("Ambient light:", sensor.light)
+        """
+        return self._light_integration_time
+
+    @light_integration_time.setter
+    def light_integration_time(self, new_it):
+        from time import sleep
+        # IT values are in 0-3 -> 80-640ms
+        old_it_ms = ((8<< self._light_integration_time)*10)
+        new_it_ms = ((8<< new_it)*10)
+        it_delay_seconds = (old_it_ms + new_it_ms + 1) * 0.001
+
+        self._light_integration_time = new_it
+        sleep(it_delay_seconds)
+
+
     light_interrupt = RWBit(0x00, 1, register_width=2)
     """Ambient light sensor interrupt enable. ``True`` to enable, and ``False`` to disable."""
 
@@ -245,26 +271,31 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         """Low interrupt event. Triggered when ambient light value drops below low threshold."""
         return self._get_and_clear_cached_interrupt_state(self.ALS_IF_L)
 
-    # White_Data_LM - White output data
-    white = ROUnaryStruct(0x0A, "<H")
-    """White light data.
 
-    This example prints the white light data. Cover the sensor to see the values change.
+    _raw_white = ROUnaryStruct(0x0A, "<H")
+    @property
 
-    .. code-block:: python
+    def white(self):
+        """White light data scaled according to the current integration time and gain settings.
 
-        import time
-        import board
-        import busio
-        import adafruit_vcnl4040
+        This example prints the white light data. Cover the sensor to see the values change.
 
-        i2c = busio.I2C(board.SCL, board.SDA)
-        sensor = adafruit_vcnl4040.VCNL4040(i2c)
+        .. code-block:: python
 
-        while True:
-            print("White light:", sensor.white)
-            time.sleep(0.1)
-    """
+            import time
+            import board
+            import busio
+            import adafruit_vcnl4040
+
+            i2c = busio.I2C(board.SCL, board.SDA)
+            sensor = adafruit_vcnl4040.VCNL4040(i2c)
+
+            while True:
+                print("White light:", sensor.white)
+                time.sleep(0.1)
+        """
+        return self._raw_white * (0.1 /(1 << self.light_integration_time))
+
 
     # PS_MS - White channel enable/disable, PS mode, PS protection setting, LED current
     # White_EN - PS_MS_H, 7th bit - White channel enable/disable
