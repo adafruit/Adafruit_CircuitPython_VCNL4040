@@ -8,5 +8,5 @@ sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
 while True:
     print("Proximity:", sensor.proximity)
-    print("Light: %d lux"% sensor.lux)
+    print("Light: %d lux" % sensor.lux)
     time.sleep(1.0)
