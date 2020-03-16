@@ -61,6 +61,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     :param busio.I2C i2c_bus: The I2C bus the VCNL4040 is connected to.
 
     """
+
     # Ambient light sensor integration times
     ALS_80MS = const(0x0)
     ALS_160MS = const(0x1)
@@ -169,7 +170,6 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         proximity drops below low threshold."""
         return self._get_and_clear_cached_interrupt_state(self.PS_IF_AWAY)
 
-
     led_current = RWBits(3, 0x04, 8, register_width=2)
     """LED current selection setting, in mA. Options are LED_50MA, LED_75MA, LED_100MA, LED_120MA,
     LED_140MA, LED_160MA, LED_180MA, LED_200MA."""
@@ -205,14 +205,14 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
                 print("Ambient light: %.2f lux"%sensor.lux)
                 time.sleep(0.1)
         """
-        return self.light * (0.1 /(1 << self.light_integration_time))
-
+        return self.light * (0.1 / (1 << self.light_integration_time))
 
     # ALS_CONF - ALS integration time, persistence, interrupt, function enable/disable
     light_shutdown = RWBit(0x00, 0, register_width=2)
     """Ambient light sensor shutdown. When ``True``, ambient light data is disabled."""
 
     _light_integration_time = RWBits(2, 0x00, 6, register_width=2)
+
     @property
     def light_integration_time(self):
         """Ambient light sensor integration time setting. Longer time has higher sensitivity.
@@ -240,15 +240,15 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     @light_integration_time.setter
     def light_integration_time(self, new_it):
-        from time import sleep
+        from time import sleep # pylint: disable=import-outside-toplevel
+
         # IT values are in 0-3 -> 80-640ms
-        old_it_ms = ((8<< self._light_integration_time)*10)
-        new_it_ms = ((8<< new_it)*10)
+        old_it_ms = (8 << self._light_integration_time) * 10
+        new_it_ms = (8 << new_it) * 10
         it_delay_seconds = (old_it_ms + new_it_ms + 1) * 0.001
 
         self._light_integration_time = new_it
         sleep(it_delay_seconds)
-
 
     light_interrupt = RWBit(0x00, 1, register_width=2)
     """Ambient light sensor interrupt enable. ``True`` to enable, and ``False`` to disable."""
@@ -271,10 +271,9 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         """Low interrupt event. Triggered when ambient light value drops below low threshold."""
         return self._get_and_clear_cached_interrupt_state(self.ALS_IF_L)
 
-
     _raw_white = ROUnaryStruct(0x0A, "<H")
-    @property
 
+    @property
     def white(self):
         """White light data scaled according to the current integration time and gain settings.
 
@@ -294,14 +293,12 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
                 print("White light:", sensor.white)
                 time.sleep(0.1)
         """
-        return self._raw_white * (0.1 /(1 << self.light_integration_time))
-
+        return self._raw_white * (0.1 / (1 << self.light_integration_time))
 
     # PS_MS - White channel enable/disable, PS mode, PS protection setting, LED current
     # White_EN - PS_MS_H, 7th bit - White channel enable/disable
     white_shutdown = RWBit(0x04, 15, register_width=2)
     """White light channel shutdown. When ``True``, white light data is disabled."""
-
 
     def __init__(self, i2c, address=0x60):
         self.i2c_device = i2cdevice.I2CDevice(i2c, address)
@@ -309,10 +306,10 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
             raise RuntimeError("Failed to find VCNL4040 - check wiring!")
 
         self.cached_interrupt_state = {
-            self.ALS_IF_L : False,
-            self.ALS_IF_H : False,
-            self.PS_IF_CLOSE : False,
-            self.PS_IF_AWAY : False
+            self.ALS_IF_L: False,
+            self.ALS_IF_H: False,
+            self.PS_IF_CLOSE: False,
+            self.PS_IF_AWAY: False,
         }
 
         self.proximity_shutdown = False
@@ -323,7 +320,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         interrupts = [self.PS_IF_AWAY, self.PS_IF_CLOSE, self.ALS_IF_H, self.ALS_IF_L]
         new_interrupt_state = self.interrupt_state
         for interrupt in interrupts:
-            new_state = (new_interrupt_state & (1 << interrupt) > 0)
+            new_state = new_interrupt_state & (1 << interrupt) > 0
             if new_state:
                 self.cached_interrupt_state[interrupt] = new_state
 
