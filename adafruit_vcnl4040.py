@@ -240,7 +240,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     @light_integration_time.setter
     def light_integration_time(self, new_it):
-        from time import sleep # pylint: disable=import-outside-toplevel
+        from time import sleep  # pylint: disable=import-outside-toplevel
 
         # IT values are in 0-3 -> 80-640ms
         old_it_ms = (8 << self._light_integration_time) * 10
