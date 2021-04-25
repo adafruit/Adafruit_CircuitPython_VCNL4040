@@ -21,11 +21,11 @@ Implementation Notes
 **Software and Dependencies:**
 
 * Adafruit CircuitPython firmware for the supported boards:
-  https://github.com/adafruit/circuitpython/releases
+  https://circuitpython.org/downloads
 
 
- * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
- * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
+* Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+* Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
 
 from micropython import const
@@ -104,10 +104,9 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
         import time
         import board
-        import busio
         import adafruit_vcnl4040
 
-        i2c = busio.I2C(board.SCL, board.SDA)
+        i2c = board.I2C()
         sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
         while True:
@@ -128,8 +127,8 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     """Interrupt enable. Interrupt setting are close, away, close and away, or disabled. Options
     are: PS_INT_DISABLE, PS_INT_CLOSE, PS_INT_AWAY, PS_INT_CLOSE_AWAY."""
     proximity_bits = RWBit(0x03, 11, register_width=2)
-    """Proximity data output setting. ``0`` when proximity sensor output is 12 bits, ``1`` when
-    proximity sensor output is 16 bits."""
+    """Proximity data output setting. :const:`0` when proximity sensor output is 12 bits,
+    :const:`1` when proximity sensor output is 16 bits."""
 
     # PS_THDL_LM - PS low interrupt threshold setting
     proximity_low_threshold = UnaryStruct(0x06, "<H")
@@ -178,10 +177,9 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
             import time
             import board
-            import busio
             import adafruit_vcnl4040
 
-            i2c = busio.I2C(board.SCL, board.SDA)
+            i2c = board.I2C()
             sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
             while True:
@@ -208,10 +206,9 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
             import time
             import board
-            import busio
             import adafruit_vcnl4040
 
-            i2c = busio.I2C(board.SCL, board.SDA)
+            i2c = board.I2C()
             sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
             sensor.light_integration_time = sensor.ALS_640MS
@@ -234,7 +231,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         sleep(it_delay_seconds)
 
     light_interrupt = RWBit(0x00, 1, register_width=2)
-    """Ambient light sensor interrupt enable. ``True`` to enable, and ``False`` to disable."""
+    """Ambient light sensor interrupt enable. `True` to enable, and `False` to disable."""
 
     # ALS_THDL_LM - ALS low interrupt threshold setting
     light_low_threshold = UnaryStruct(0x02, "<H")
@@ -266,10 +263,9 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
             import time
             import board
-            import busio
             import adafruit_vcnl4040
 
-            i2c = busio.I2C(board.SCL, board.SDA)
+            i2c = board.I2C()
             sensor = adafruit_vcnl4040.VCNL4040(i2c)
 
             while True:
@@ -281,7 +277,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     # PS_MS - White channel enable/disable, PS mode, PS protection setting, LED current
     # White_EN - PS_MS_H, 7th bit - White channel enable/disable
     white_shutdown = RWBit(0x04, 15, register_width=2)
-    """White light channel shutdown. When ``True``, white light data is disabled."""
+    """White light channel shutdown. When `True`, white light data is disabled."""
 
     def __init__(self, i2c, address=0x60):
         self.i2c_device = i2cdevice.I2CDevice(i2c, address)
