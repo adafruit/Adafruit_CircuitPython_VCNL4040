@@ -23,10 +23,12 @@ Table of Contents
 .. toctree::
     :caption: Tutorials
 
+    Adafruit VCNL4040 Proximity and Lux Sensor Learning Guide <https://learn.adafruit.com/adafruit-vcnl4040-proximity-sensor/>
 
 .. toctree::
     :caption: Related Products
 
+    Adafruit VCNL4040 Proximity and Lux Sensor <https://www.adafruit.com/product/4161>
 
 .. toctree::
     :caption: Other Links
