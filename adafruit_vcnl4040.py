@@ -38,6 +38,13 @@ __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VCNL4040.git"
 
 
+try:
+    import typing  # pylint: disable=unused-import
+    from busio import I2C
+except ImportError:
+    pass
+
+
 class VCNL4040:  # pylint: disable=too-few-public-methods
     """Driver for the VCNL4040 proximity and ambient light sensor.
 
@@ -141,13 +148,13 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     # INT_FLAG - PS interrupt flag
     @property
-    def proximity_high_interrupt(self):
+    def proximity_high_interrupt(self) -> bool:
         """If interrupt is set to ``PS_INT_CLOSE`` or ``PS_INT_CLOSE_AWAY``, trigger event when
         proximity rises above high threshold interrupt."""
         return self._get_and_clear_cached_interrupt_state(self.PS_IF_CLOSE)
 
     @property
-    def proximity_low_interrupt(self):
+    def proximity_low_interrupt(self) -> bool:
         """If interrupt is set to ``PS_INT_AWAY`` or ``PS_INT_CLOSE_AWAY``, trigger event when
         proximity drops below low threshold."""
         return self._get_and_clear_cached_interrupt_state(self.PS_IF_AWAY)
@@ -167,7 +174,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     """
 
     @property
-    def lux(self):
+    def lux(self) -> float:
         """Ambient light data in lux. Represents the raw sensor data scaled according to the current
         integration time and gain settings.
 
@@ -195,7 +202,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     _light_integration_time = RWBits(2, 0x00, 6, register_width=2)
 
     @property
-    def light_integration_time(self):
+    def light_integration_time(self) -> int:
         """Ambient light sensor integration time setting. Longer time has higher sensitivity.
         Can be: ALS_80MS, ALS_160MS, ALS_320MS or ALS_640MS.
 
@@ -219,7 +226,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         return self._light_integration_time
 
     @light_integration_time.setter
-    def light_integration_time(self, new_it):
+    def light_integration_time(self, new_it: int) -> None:
         from time import sleep  # pylint: disable=import-outside-toplevel
 
         # IT values are in 0-3 -> 80-640ms
@@ -242,19 +249,19 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     # INT_FLAG - ALS interrupt flag
 
     @property
-    def light_high_interrupt(self):
+    def light_high_interrupt(self) -> bool:
         """High interrupt event. Triggered when ambient light value exceeds high threshold."""
         return self._get_and_clear_cached_interrupt_state(self.ALS_IF_H)
 
     @property
-    def light_low_interrupt(self):
+    def light_low_interrupt(self) -> bool:
         """Low interrupt event. Triggered when ambient light value drops below low threshold."""
         return self._get_and_clear_cached_interrupt_state(self.ALS_IF_L)
 
     _raw_white = ROUnaryStruct(0x0A, "<H")
 
     @property
-    def white(self):
+    def white(self) -> float:
         """White light data scaled according to the current integration time and gain settings.
 
         This example prints the white light data. Cover the sensor to see the values change.
@@ -279,7 +286,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
     white_shutdown = RWBit(0x04, 15, register_width=2)
     """White light channel shutdown. When `True`, white light data is disabled."""
 
-    def __init__(self, i2c, address=0x60):
+    def __init__(self, i2c: I2C, address: int = 0x60):
         self.i2c_device = i2cdevice.I2CDevice(i2c, address)
         if self._device_id != 0x186:
             raise RuntimeError("Failed to find VCNL4040 - check wiring!")
@@ -295,7 +302,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
         self.light_shutdown = False
         self.white_shutdown = False
 
-    def _update_interrupt_state(self):
+    def _update_interrupt_state(self) -> None:
         interrupts = [self.PS_IF_AWAY, self.PS_IF_CLOSE, self.ALS_IF_H, self.ALS_IF_L]
         new_interrupt_state = self.interrupt_state
         for interrupt in interrupts:
@@ -303,7 +310,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
             if new_state:
                 self.cached_interrupt_state[interrupt] = new_state
 
-    def _get_and_clear_cached_interrupt_state(self, interrupt_offset):
+    def _get_and_clear_cached_interrupt_state(self, interrupt_offset: int) -> bool:
         self._update_interrupt_state()
         new_interrupt_state = self.cached_interrupt_state[interrupt_offset]
         self.cached_interrupt_state[interrupt_offset] = False
