@@ -39,6 +39,7 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VCNL4040.git"
 
 
 try:
+    import typing  # pylint: disable=unused-import
     from busio import I2C
 except ImportError:
     pass
