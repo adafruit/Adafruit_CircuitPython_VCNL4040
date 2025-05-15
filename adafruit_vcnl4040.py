@@ -28,24 +28,25 @@ Implementation Notes
 * Adafruit's Register library: https://github.com/adafruit/Adafruit_CircuitPython_Register
 """
 
-from micropython import const
 import adafruit_bus_device.i2c_device as i2cdevice
-from adafruit_register.i2c_struct import UnaryStruct, ROUnaryStruct
-from adafruit_register.i2c_bits import RWBits
 from adafruit_register.i2c_bit import RWBit
+from adafruit_register.i2c_bits import RWBits
+from adafruit_register.i2c_struct import ROUnaryStruct, UnaryStruct
+from micropython import const
 
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VCNL4040.git"
 
 
 try:
-    import typing  # pylint: disable=unused-import
+    import typing
+
     from busio import I2C
 except ImportError:
     pass
 
 
-class VCNL4040:  # pylint: disable=too-few-public-methods
+class VCNL4040:
     """Driver for the VCNL4040 proximity and ambient light sensor.
 
     :param busio.I2C i2c_bus: The I2C bus the VCNL4040 is connected to.
@@ -227,7 +228,7 @@ class VCNL4040:  # pylint: disable=too-few-public-methods
 
     @light_integration_time.setter
     def light_integration_time(self, new_it: int) -> None:
-        from time import sleep  # pylint: disable=import-outside-toplevel
+        from time import sleep  # noqa: PLC0415
 
         # IT values are in 0-3 -> 80-640ms
         old_it_ms = (8 << self._light_integration_time) * 10
